@@ -9,9 +9,9 @@ pub fn main() !void {
     defer _ = gpa.deinit();
 
     const params = comptime clap.parseParamsComptime(
-        \\-h, --help   Display this help and exit.
-        \\-s, --source Source currency.
-        \\-t, --target Target currency.
+        \\-h, --help         Display this help and exit.
+        \\-s, --source <str> (required) Source currency.
+        \\-t, --target <str> (required) Target currency.
     );
 
     var diag = clap.Diagnostic{};
@@ -24,7 +24,14 @@ pub fn main() !void {
     };
     defer res.deinit();
 
-    if (res.args.help != 0)
-        debug.print("--help\n", .{});
-    // TODO: Parse source and target, make them required
+    if (res.args.help != 0) {
+        return clap.help(io.getStdErr().writer(), clap.Help, &params, .{});
+    }
+
+    const sourceCurrency = res.args.source;
+    const targetCurrency = res.args.source;
+    if (sourceCurrency == null or targetCurrency == null) {
+        try io.getStdErr().writer().print("--source and --target are required\n\n", .{});
+        return clap.help(io.getStdErr().writer(), clap.Help, &params, .{});
+    }
 }
