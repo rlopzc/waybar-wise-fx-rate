@@ -29,7 +29,9 @@ pub fn main() !void {
     }
 
     const sourceCurrency = res.args.source;
-    const targetCurrency = res.args.source;
+    const targetCurrency = res.args.target;
+    debug.print("source={?s} target={?s}\n", .{ sourceCurrency, targetCurrency });
+
     if (sourceCurrency == null or targetCurrency == null) {
         try io.getStdErr().writer().print("--source and --target are required\n\n", .{});
         return clap.help(io.getStdErr().writer(), clap.Help, &params, .{});
