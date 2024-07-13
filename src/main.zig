@@ -67,7 +67,7 @@ fn waybarFmt(alloc: mem.Allocator, fx_rate: *const FxRate) !void {
     const rate_with_currency: []const u8 = try std.fmt.allocPrint(alloc, "{d:.2} {s}/{s}", .{ fx_rate.rate, fx_rate.source, fx_rate.target });
     defer alloc.free(rate_with_currency);
 
-    try io.getStdOut().writer().print("{{\"text\": \"{s}\", \"tooltip\": \"{s}\", \"alt\": \"\", \"class\": \"\"}}\n", .{ rate_with_currency, fx_rate.time });
+    try io.getStdOut().writer().print("{{\"text\": \"{s}\", \"tooltip\": \"{s}\", \"alt\": \"default\", \"class\": \"default\"}}\n", .{ rate_with_currency, fx_rate.time });
 }
 
 // https://docs.wise.com/api-docs/api-reference/rate#get
