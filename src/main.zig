@@ -1,7 +1,7 @@
 const clap = @import("clap");
 const std = @import("std");
 
-const debug = std.debug;
+const log = std.log;
 const io = std.io;
 const http = std.http;
 const mem = std.mem;
@@ -52,7 +52,7 @@ pub fn main() !void {
     const wise_api_key: ?[]const u8 = res.args.apikey;
     const source_currency: ?[]const u8 = res.args.source;
     const target_currency: ?[]const u8 = res.args.target;
-    debug.print("apikey={?s} source={?s} target={?s}\n", .{ wise_api_key, source_currency, target_currency });
+    log.debug("apikey={?s} source={?s} target={?s}\n", .{ wise_api_key, source_currency, target_currency });
 
     if (wise_api_key == null or source_currency == null or target_currency == null) {
         try io.getStdErr().writer().print("--apikey, --source, and --target are required.\n\n", .{});
@@ -81,7 +81,7 @@ fn fxRate(alloc: mem.Allocator, wise_api_key: []const u8, source: []const u8, ta
         .{ source, target },
     );
     defer alloc.free(url);
-    debug.print("url={s}\n", .{url});
+    log.debug("url={s}\n", .{url});
 
     const bearer_token: []const u8 = try std.fmt.allocPrint(alloc, "Bearer {s}", .{wise_api_key});
     defer alloc.free(bearer_token);
@@ -101,15 +101,15 @@ fn fxRate(alloc: mem.Allocator, wise_api_key: []const u8, source: []const u8, ta
             },
         },
     );
-    debug.print("fetch_result={}\n", .{fetch_result});
-    debug.print("fetch_result_response={s}\n", .{response.items});
+    log.debug("fetch_result={}\n", .{fetch_result});
+    log.debug("fetch_result_response={s}\n", .{response.items});
 
     switch (fetch_result.status) {
         .ok => {
             const parsed_response = try json.parseFromSliceLeaky([]FxRate, alloc, response.items, .{});
             defer alloc.free(parsed_response);
 
-            debug.print("parsed_response={s}\n", .{parsed_response});
+            log.debug("parsed_response={s}\n", .{parsed_response});
             return parsed_response[0];
         },
         .bad_request => {
