@@ -59,7 +59,15 @@ pub fn main() !void {
         return clap.help(io.getStdErr().writer(), clap.Help, &params, .{});
     }
 
-    _ = try fxRate(arena.allocator(), wise_api_key.?, source_currency.?, target_currency.?);
+    const fx_rate = try fxRate(arena.allocator(), wise_api_key.?, source_currency.?, target_currency.?);
+    try waybarFmt(arena.allocator(), &fx_rate);
+}
+
+fn waybarFmt(alloc: mem.Allocator, fx_rate: *const FxRate) !void {
+    const rate_with_currency: []const u8 = try std.fmt.allocPrint(alloc, "{d:.2} {s}/{s}", .{ fx_rate.rate, fx_rate.source, fx_rate.target });
+    defer alloc.free(rate_with_currency);
+
+    try io.getStdOut().writer().print("{{\"text\": \"{s}\", \"tooltip\": \"{s}\", \"alt\": \"\", \"class\": \"\"}}\n", .{ rate_with_currency, fx_rate.time });
 }
 
 // https://docs.wise.com/api-docs/api-reference/rate#get
