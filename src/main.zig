@@ -86,7 +86,7 @@ fn fxRate(alloc: mem.Allocator, wise_api_key: []const u8, source: []const u8, ta
     const bearer_token: []const u8 = try std.fmt.allocPrint(alloc, "Bearer {s}", .{wise_api_key});
     defer alloc.free(bearer_token);
 
-    var fetch_response = std.ArrayList(u8).init(alloc);
+    var response = std.ArrayList(u8).init(alloc);
     const fetch_result = try client.fetch(
         .{
             .method = .GET,
@@ -97,21 +97,28 @@ fn fxRate(alloc: mem.Allocator, wise_api_key: []const u8, source: []const u8, ta
                 },
             },
             .response_storage = .{
-                .dynamic = &fetch_response,
+                .dynamic = &response,
             },
         },
     );
     debug.print("fetch_result={}\n", .{fetch_result});
+    debug.print("fetch_result_response={s}\n", .{response.items});
 
     switch (fetch_result.status) {
+        .ok => {
+            const parsed_response = try json.parseFromSliceLeaky([]FxRate, alloc, response.items, .{});
+            defer alloc.free(parsed_response);
+
+            debug.print("parsed_response={s}\n", .{parsed_response});
+            return parsed_response[0];
+        },
+        .bad_request => {
+            try io.getStdErr().writer().print("Bad request. Check the --source and --target. http_response={s}", .{response.items});
+            std.process.exit(1);
+        },
         .unauthorized => {
             try io.getStdErr().writer().print("Unauthorized request. Check your Wise API Key.", .{});
             std.process.exit(1);
-        },
-        .ok => {
-            const parsed_response = try json.parseFromSliceLeaky([]FxRate, alloc, fetch_response.items, .{});
-            debug.print("parsed_response={s}\n", .{parsed_response});
-            return parsed_response[0];
         },
         else => {
             try io.getStdErr().writer().print("Unknown result. Contact the developer!", .{});
