@@ -9,7 +9,7 @@ Example output in Waybar:
 
 ## Getting Started
 
-### Getting your Wise API Key
+### Get your Wise API Key
 
 In order for this to work, you need to provide your Wise API Key.
 
@@ -36,21 +36,22 @@ zig build --release=fast
 The binary will be in `zig-out/bin/waybar-wise-fx-rate`.
 
 Symlink it to your `~/.local/bin`. Replace `<your-path-to-project-dir>` with the dir where you cloned the repository.
+
 ```sh
-ln -s $HOME/<your-path-to-project-dir>/zig-out/bin/waybar-wise-fx-rate ~/.local/bin/waybar-wise-fx-rate
+ln -s $HOME/<path-to-project-dir>/zig-out/bin/waybar-wise-fx-rate ~/.local/bin/waybar-wise-fx-rate
 ```
 
-### Download binary from Releases
+### Downloading binary from Releases
 
-Check latest released assets.
 Currently built for:
 - x86_64-linux
 - aarch64-linux
 - arm-linux
 
-1. Go to the latest release
-1. Check your architecture
-1. Download it with `curl -L https://github.com/rlopzc/waybar-wise-fx-rate/releases/latest/download/waybar-wise-fx-rate-x86_64-linux`
+1. Check your architecture.
+1. Download it with `curl -L https://github.com/rlopzc/waybar-wise-fx-rate/releases/latest/download/waybar-wise-fx-rate-x86_64-linux > waybar-wise-fx-rate`.
+1. Make it executable `chmod +x ./waybar-wise-fx-rate`.
+1. Symlink it with: `ln -s $HOME/<download-dir>/waybar-wise-fx-rate ~/.local/bin/waybar-wise-fx-rate`.
 
 > Replace the architecture with yours.
 
@@ -62,8 +63,7 @@ Currently built for:
 - `--source`. Source Currency supported by Wise.
 - `--target`. Target Currency supported by Wise.
 
-Add a custom module:
-
+Add a custom module to your waybar config:
 
 ```json
 "custom/wise-fx-rate": {
