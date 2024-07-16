@@ -7,7 +7,7 @@ Example output in Waybar:
 17.62 USD/MXN
 ```
 
-## How to use
+## Getting Started
 
 ### Getting your Wise API Key
 
@@ -42,4 +42,31 @@ ln -s $HOME/<your-path-to-project-dir>/zig-out/bin/waybar-wise-fx-rate ~/.local/
 
 ### Download binary from Releases
 
-TBD
+Check latest release assets.
+
+1. Go to the latest release
+1. Check your architecture
+1. Download it with `curl ..`
+
+## Using the Waybar module
+
+**Args**.
+
+- `--apikey`. Wise API key.
+- `--source`. Source Currency supported by Wise.
+- `--target`. Target Currency supported by Wise.
+
+Add a custom module:
+
+
+```json
+"custom/wise-fx-rate": {
+  "format": "{} {icon}",
+  "return-type": "json",
+  "format-icons": {
+    "default": ""
+  },
+  "exec": "waybar-wise-fx-rate --apikey <wise-api-key> --source <source> --target <target>",
+  "interval": 60
+}
+```
