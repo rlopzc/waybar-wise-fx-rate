@@ -37,7 +37,8 @@ jobs:
       - name: Upload the binary
         uses: svenstaro/upload-release-action@v2
         with:
-          file: zig-out/bin/binary-${{ github.ref_name }}-${{ matrix.TARGET }}*
-          file_glob: true
-          overwrite: true
           tag: ${{ github.ref }}
+          file: zig-out/bin/waybar-wise-fx-rate
+          asset_name: waybar-wise-fx-rate-${{ matrix.TARGET }}*
+          overwrite: true
+          repo_token: ${{ secrets.WAYBAR_WISE_FX_RATE_PAT }}
