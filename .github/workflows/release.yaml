@@ -17,9 +17,7 @@ jobs:
           [
             x86_64-linux,
             aarch64-linux,
-            arm-linux,
-            riscv64-linux,
-            i386-linux,
+            arm-linux
           ]
 
     steps:
@@ -33,6 +31,8 @@ jobs:
 
       - name: Build
         run: zig build --release=small -Dtarget=${{ matrix.TARGET }} --summary all
+
+      - run: tree ./zig-out
 
       - name: Upload the binary
         uses: svenstaro/upload-release-action@v2
