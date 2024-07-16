@@ -32,7 +32,7 @@ jobs:
           version: 0.13.0
 
       - name: Build
-        run: zig build -Drelease-small -Dtarget=${{ matrix.TARGET }}
+        run: zig build --release=small -Dtarget=${{ matrix.TARGET }} --summary all
 
       - name: Upload the binary
         uses: svenstaro/upload-release-action@v2
