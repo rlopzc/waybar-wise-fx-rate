@@ -1,4 +1,5 @@
-# Taken from https://blog.orhun.dev/zig-bits-03/
+# Inspired from from https://blog.orhun.dev/zig-bits-03/
+# Updated to Zig 0.13.0
 name: Release
 
 on:
@@ -39,6 +40,6 @@ jobs:
         with:
           tag: ${{ github.ref }}
           file: zig-out/bin/waybar-wise-fx-rate
-          asset_name: waybar-wise-fx-rate-${{ matrix.TARGET }}*
+          asset_name: waybar-wise-fx-rate-${{ matrix.TARGET }}
           overwrite: true
           repo_token: ${{ secrets.WAYBAR_WISE_FX_RATE_PAT }}
