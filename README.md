@@ -70,7 +70,7 @@ Add a custom module to your waybar config:
   "format": "{} {icon}",
   "return-type": "json",
   "format-icons": {
-    "default": ""
+    "default": "$"
   },
   "exec": "waybar-wise-fx-rate --apikey <wise-api-key> --source <source> --target <target>",
   "interval": 60
