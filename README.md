@@ -42,15 +42,21 @@ ln -s $HOME/<your-path-to-project-dir>/zig-out/bin/waybar-wise-fx-rate ~/.local/
 
 ### Download binary from Releases
 
-Check latest release assets.
+Check latest released assets.
+Currently built for:
+- x86_64-linux
+- aarch64-linux
+- arm-linux
 
 1. Go to the latest release
 1. Check your architecture
-1. Download it with `curl ..`
+1. Download it with `curl -L https://github.com/rlopzc/waybar-wise-fx-rate/releases/latest/download/waybar-wise-fx-rate-x86_64-linux`
+
+> Replace the architecture with yours.
 
 ## Using the Waybar module
 
-**Args**.
+**CLI Arguments**.
 
 - `--apikey`. Wise API key.
 - `--source`. Source Currency supported by Wise.
