@@ -87,6 +87,7 @@ fn fxRate(alloc: mem.Allocator, wise_api_key: []const u8, source: []const u8, ta
     defer alloc.free(bearer_token);
 
     var response = std.ArrayList(u8).init(alloc);
+    defer response.deinit();
     const fetch_result = try client.fetch(
         .{
             .method = .GET,
