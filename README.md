@@ -14,7 +14,7 @@ Example output in Waybar:
 In order for this to work, you need to provide your Wise API Key.
 
 1. Log in to wise.
-1. Go to: Profile -> Settings -> Developer tools -> API tokens.
+1. Go to: https://wise.com/your-account/integrations-and-tools/api-tokens
 1. Add new token
       1. _Name_: Waybar Wise FX Rate.
       1. _Token permissions_: **Read only** <- Very important!!

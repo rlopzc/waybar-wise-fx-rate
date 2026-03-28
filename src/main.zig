@@ -60,14 +60,26 @@ pub fn main() !void {
     }
 
     const fx_rate = try fxRate(arena.allocator(), wise_api_key.?, source_currency.?, target_currency.?);
-    try waybarFmt(arena.allocator(), &fx_rate);
+    try waybarFmt(arena.allocator(), io.getStdOut().writer(), &fx_rate);
 }
 
-fn waybarFmt(alloc: mem.Allocator, fx_rate: *const FxRate) !void {
-    const rate_with_currency: []const u8 = try std.fmt.allocPrint(alloc, "{d:.2} {s}/{s}", .{ fx_rate.rate, fx_rate.source, fx_rate.target });
+fn waybarFmt(alloc: mem.Allocator, writer: anytype, fx_rate: *const FxRate) !void {
+    const rate_with_currency: []const u8 = try std.fmt.allocPrint(alloc, "{d:.2} {s}/{s}", .{
+        fx_rate.rate,
+        fx_rate.source,
+        fx_rate.target,
+    });
     defer alloc.free(rate_with_currency);
 
-    try io.getStdOut().writer().print("{{\"text\": \"{s}\", \"tooltip\": \"{s}\", \"alt\": \"default\", \"class\": \"default\"}}\n", .{ rate_with_currency, fx_rate.time });
+    try writer.print("{{\"text\": \"{s}\", \"tooltip\": \"{s}\", \"alt\": \"default\", \"class\": \"default\"}}\n", .{
+        rate_with_currency,
+        fx_rate.time,
+    });
+}
+
+fn parseRate(alloc: mem.Allocator, body: []const u8) !FxRate {
+    const parsed = try json.parseFromSliceLeaky([]FxRate, alloc, body, .{});
+    return parsed[0];
 }
 
 // https://docs.wise.com/api-docs/api-reference/rate#get
@@ -87,7 +99,6 @@ fn fxRate(alloc: mem.Allocator, wise_api_key: []const u8, source: []const u8, ta
     defer alloc.free(bearer_token);
 
     var response = std.ArrayList(u8).init(alloc);
-    defer response.deinit();
     const fetch_result = try client.fetch(
         .{
             .method = .GET,
@@ -107,11 +118,7 @@ fn fxRate(alloc: mem.Allocator, wise_api_key: []const u8, source: []const u8, ta
 
     switch (fetch_result.status) {
         .ok => {
-            const parsed_response = try json.parseFromSliceLeaky([]FxRate, alloc, response.items, .{});
-            defer alloc.free(parsed_response);
-
-            log.debug("parsed_response={s}\n", .{parsed_response});
-            return parsed_response[0];
+            return parseRate(alloc, response.items);
         },
         .bad_request => {
             try io.getStdErr().writer().print("Bad request. Check the --source and --target. http_response={s}", .{response.items});
@@ -126,4 +133,60 @@ fn fxRate(alloc: mem.Allocator, wise_api_key: []const u8, source: []const u8, ta
             std.process.exit(1);
         },
     }
+}
+
+test "parseRate: parses valid API response" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    var arena = std.heap.ArenaAllocator.init(gpa.allocator());
+    defer arena.deinit();
+
+    const body =
+        \\[{"rate":18.12,"source":"USD","target":"MXN","time":"2024-01-01T00:00:00+0000"}]
+    ;
+    const fx_rate = try parseRate(arena.allocator(), body);
+
+    try std.testing.expectApproxEqAbs(@as(f16, 18.12), fx_rate.rate, 0.1);
+    try std.testing.expectEqualStrings("USD", fx_rate.source);
+    try std.testing.expectEqualStrings("MXN", fx_rate.target);
+    try std.testing.expectEqualStrings("2024-01-01T00:00:00+0000", fx_rate.time);
+}
+
+test "parseRate: returns first rate when multiple rates returned" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    var arena = std.heap.ArenaAllocator.init(gpa.allocator());
+    defer arena.deinit();
+
+    const body =
+        \\[{"rate":18.12,"source":"USD","target":"MXN","time":"2024-01-01T00:00:00+0000"},{"rate":1.08,"source":"USD","target":"EUR","time":"2024-01-01T00:00:00+0000"}]
+    ;
+    const fx_rate = try parseRate(arena.allocator(), body);
+
+    try std.testing.expectEqualStrings("USD", fx_rate.source);
+    try std.testing.expectEqualStrings("MXN", fx_rate.target);
+}
+
+test "waybarFmt: formats output as waybar JSON" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    var arena = std.heap.ArenaAllocator.init(gpa.allocator());
+    defer arena.deinit();
+
+    var buf = std.ArrayList(u8).init(gpa.allocator());
+    defer buf.deinit();
+
+    const fx_rate = FxRate{
+        .rate = 18.12,
+        .source = "USD",
+        .target = "MXN",
+        .time = "2024-01-01T00:00:00+0000",
+    };
+
+    try waybarFmt(arena.allocator(), buf.writer(), &fx_rate);
+
+    try std.testing.expectEqualStrings(
+        "{\"text\": \"18.12 USD/MXN\", \"tooltip\": \"2024-01-01T00:00:00+0000\", \"alt\": \"default\", \"class\": \"default\"}\n",
+        buf.items,
+    );
 }
