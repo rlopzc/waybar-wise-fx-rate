@@ -1,5 +1,5 @@
 # Inspired from https://blog.orhun.dev/zig-bits-03/
-# Updated to Zig 0.13.0
+# Updated to Zig 0.15.2
 name: Release
 
 on:
@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.13.0
+          version: 0.15.2
 
   publish-github:
     name: Publish on GitHub
@@ -36,7 +36,7 @@ jobs:
 
       - uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.13.0
+          version: 0.15.2
 
       - name: Build
         run: zig build --release=small -Dtarget=${{ matrix.TARGET }} --summary all
