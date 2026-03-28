@@ -40,13 +40,13 @@ pub fn main() !void {
         clap.parsers.default,
         .{ .diagnostic = &diag, .allocator = arena.allocator() },
     ) catch |err| {
-        diag.report(io.getStdErr().writer(), err) catch {};
+        diag.reportToFile(std.fs.File.stderr(), err) catch {};
         return err;
     };
     defer res.deinit();
 
     if (res.args.help != 0) {
-        return clap.help(io.getStdErr().writer(), clap.Help, &params, .{});
+        return clap.helpToFile(std.fs.File.stderr(), clap.Help, &params, .{});
     }
 
     const wise_api_key: ?[]const u8 = res.args.apikey;
@@ -55,12 +55,16 @@ pub fn main() !void {
     log.debug("apikey={?s} source={?s} target={?s}\n", .{ wise_api_key, source_currency, target_currency });
 
     if (wise_api_key == null or source_currency == null or target_currency == null) {
-        try io.getStdErr().writer().print("--apikey, --source, and --target are required.\n\n", .{});
-        return clap.help(io.getStdErr().writer(), clap.Help, &params, .{});
+        try std.fs.File.stderr().writeAll("--apikey, --source, and --target are required.\n\n");
+        return clap.helpToFile(std.fs.File.stderr(), clap.Help, &params, .{});
     }
 
     const fx_rate = try fxRate(arena.allocator(), wise_api_key.?, source_currency.?, target_currency.?);
-    try waybarFmt(arena.allocator(), io.getStdOut().writer(), &fx_rate);
+
+    var stdout_buf: [256]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buf);
+    try waybarFmt(arena.allocator(), &stdout_writer.interface, &fx_rate);
+    try stdout_writer.interface.flush();
 }
 
 fn waybarFmt(alloc: mem.Allocator, writer: anytype, fx_rate: *const FxRate) !void {
@@ -105,21 +109,18 @@ fn fxRate(alloc: mem.Allocator, wise_api_key: []const u8, source: []const u8, ta
     const bearer_token: []const u8 = try std.fmt.allocPrint(alloc, "Bearer {s}", .{wise_api_key});
     defer alloc.free(bearer_token);
 
-    var response = std.ArrayList(u8).init(alloc);
-    const fetch_result = try client.fetch(
-        .{
-            .method = .GET,
-            .location = .{ .url = url },
-            .headers = .{
-                .authorization = .{
-                    .override = bearer_token,
-                },
-            },
-            .response_storage = .{
-                .dynamic = &response,
+    var response_writer: std.io.Writer.Allocating = .init(alloc);
+    const fetch_result = try client.fetch(.{
+        .method = .GET,
+        .location = .{ .url = url },
+        .headers = .{
+            .authorization = .{
+                .override = bearer_token,
             },
         },
-    );
+        .response_writer = &response_writer.writer,
+    });
+    const response = response_writer.toArrayList();
     log.debug("fetch_result={}\n", .{fetch_result});
     log.debug("fetch_result_response={s}\n", .{response.items});
 
@@ -128,15 +129,17 @@ fn fxRate(alloc: mem.Allocator, wise_api_key: []const u8, source: []const u8, ta
             return parseRate(alloc, response.items);
         },
         .bad_request => {
-            try io.getStdErr().writer().print("Bad request. Check the --source and --target. http_response={s}", .{response.items});
+            var buf: [4096]u8 = undefined;
+            const msg = std.fmt.bufPrint(&buf, "Bad request. Check the --source and --target. http_response={s}", .{response.items}) catch "Bad request.";
+            std.fs.File.stderr().writeAll(msg) catch {};
             std.process.exit(1);
         },
         .unauthorized => {
-            try io.getStdErr().writer().print("Unauthorized request. Check your Wise API Key.", .{});
+            std.fs.File.stderr().writeAll("Unauthorized request. Check your Wise API Key.") catch {};
             std.process.exit(1);
         },
         else => {
-            try io.getStdErr().writer().print("Unknown result. Contact the developer!", .{});
+            std.fs.File.stderr().writeAll("Unknown result. Contact the developer!") catch {};
             std.process.exit(1);
         },
     }
@@ -203,7 +206,7 @@ test "waybarFmt: formats output as waybar JSON" {
     var arena = std.heap.ArenaAllocator.init(gpa.allocator());
     defer arena.deinit();
 
-    var buf = std.ArrayList(u8).init(gpa.allocator());
+    var buf: std.io.Writer.Allocating = .init(gpa.allocator());
     defer buf.deinit();
 
     const fx_rate = FxRate{
@@ -213,10 +216,13 @@ test "waybarFmt: formats output as waybar JSON" {
         .time = "2024-01-01T00:00:00+0000",
     };
 
-    try waybarFmt(arena.allocator(), buf.writer(), &fx_rate);
+    try waybarFmt(arena.allocator(), &buf.writer, &fx_rate);
+
+    var result = buf.toArrayList();
+    defer result.deinit(gpa.allocator());
 
     try std.testing.expectEqualStrings(
         "{\"text\": \"18.12 USD/MXN\", \"tooltip\": \"2024-01-01T00:00:00+0000\", \"alt\": \"default\", \"class\": \"default\"}\n",
-        buf.items,
+        result.items,
     );
 }
