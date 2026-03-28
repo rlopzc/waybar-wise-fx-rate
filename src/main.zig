@@ -67,7 +67,7 @@ pub fn main() !void {
     try stdout_writer.interface.flush();
 }
 
-fn waybarFmt(alloc: mem.Allocator, writer: anytype, fx_rate: *const FxRate) !void {
+fn waybarFmt(alloc: mem.Allocator, writer: *std.io.Writer, fx_rate: *const FxRate) !void {
     const rate_with_currency: []const u8 = try std.fmt.allocPrint(alloc, "{d:.2} {s}/{s}", .{
         fx_rate.rate,
         fx_rate.source,
