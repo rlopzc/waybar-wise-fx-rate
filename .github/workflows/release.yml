@@ -7,6 +7,9 @@ on:
     tags:
       - "v*.*.*"
 
+permissions:
+  contents: write
+
 jobs:
   install-zig:
     name: Install zig
@@ -50,4 +53,4 @@ jobs:
           file: zig-out/bin/waybar-wise-fx-rate
           asset_name: waybar-wise-fx-rate-${{ matrix.TARGET }}
           overwrite: true
-          repo_token: ${{ secrets.WAYBAR_WISE_FX_RATE_PAT }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
