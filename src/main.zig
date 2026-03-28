@@ -78,8 +78,15 @@ fn waybarFmt(alloc: mem.Allocator, writer: anytype, fx_rate: *const FxRate) !voi
 }
 
 fn parseRate(alloc: mem.Allocator, body: []const u8) !FxRate {
-    const parsed = try json.parseFromSliceLeaky([]FxRate, alloc, body, .{});
-    return parsed[0];
+    const parsed = try json.parseFromSlice([]FxRate, alloc, body, .{});
+    defer parsed.deinit();
+    const fx_rate = parsed.value[0];
+    return FxRate{
+        .rate = fx_rate.rate,
+        .source = try alloc.dupe(u8, fx_rate.source),
+        .target = try alloc.dupe(u8, fx_rate.target),
+        .time = try alloc.dupe(u8, fx_rate.time),
+    };
 }
 
 // https://docs.wise.com/api-docs/api-reference/rate#get
@@ -133,6 +140,29 @@ fn fxRate(alloc: mem.Allocator, wise_api_key: []const u8, source: []const u8, ta
             std.process.exit(1);
         },
     }
+}
+
+test "parseRate: strings remain valid after input buffer is freed" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    var arena = std.heap.ArenaAllocator.init(gpa.allocator());
+    defer arena.deinit();
+
+    // Allocate body on the heap so freeing it is real (not a no-op like arena)
+    const body = try gpa.allocator().dupe(u8,
+        \\[{"rate":18.12,"source":"USD","target":"MXN","time":"2024-01-01T00:00:00+0000"}]
+    );
+
+    const fx_rate = try parseRate(arena.allocator(), body);
+
+    // Free the input buffer. GPA poisons freed memory with 0xaa, so if the
+    // string fields are slices into body rather than owned copies, the
+    // assertions below will see garbage and fail.
+    gpa.allocator().free(body);
+
+    try std.testing.expectEqualStrings("USD", fx_rate.source);
+    try std.testing.expectEqualStrings("MXN", fx_rate.target);
+    try std.testing.expectEqualStrings("2024-01-01T00:00:00+0000", fx_rate.time);
 }
 
 test "parseRate: parses valid API response" {
